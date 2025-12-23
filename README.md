@@ -77,29 +77,20 @@ README.md
 
 
 
-
-sequenceDiagram
-    participant Admin as Off-Chain Admin
-    participant User as User
-    participant Vault as SecureVault
-    participant Auth as AuthManager
-
-    Note over Admin, User: Step 1: Authorization
-    Admin->>User: Generates Signature (Vault + Recipient + Amt + Nonce)
-
-    Note over User, Vault: Step 2: Execution
-    User->>Vault: withdraw(recipient, amount, nonce, signature)
+graph TD
+    User[User / Recipient]
+    Admin[Off-Chain Admin]
     
-    Vault->>Auth: verifyAuthorization(vaultAddress, recipient, amount, nonce, signature)
-    
-    alt Signature Valid & Nonce Unused
-        Auth->>Auth: Mark Nonce as Used (Replay Protection)
-        Auth-->>Vault: Return True
-        Vault->>Vault: Check Balance
-        Vault->>User: Transfer ETH
-        Vault->>Vault: Emit Withdrawal Event
-    else Signature Invalid OR Replay Detected
-        Auth-->>Vault: Return False / Revert
-        Vault-->>User: Revert Transaction
+    subgraph "On-Chain System"
+        Vault[SecureVault Contract]
+        Auth[AuthorizationManager Contract]
     end
 
+    Admin -- "1. Signs Message Off-Chain" --> User
+    User -- "2. Calls withdraw()" --> Vault
+    Vault -- "3. Calls verifyAuthorization()" --> Auth
+    Auth -- "4. Returns True or False" --> Vault
+    Vault -- "5. Transfers ETH" --> User
+
+    style Vault fill:#f9f,stroke:#333,stroke-width:2px
+    style Auth fill:#bbf,stroke:#333,stroke-width:2px
